@@ -1,57 +1,23 @@
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import okhttp3.*;
+    public static double distance(Coodinate s, Coodinate e) throws URISyntaxException, IOException, InterruptedException {
+        double distance = 0;
+        String ORSurl = "https://api.openrouteservice.org/v2/directions/driving-car?api_key=5b3ce3597851110001cf6248c6cd819e9caa4c3eab19abf5496e0a1a&start="+s.getLatitude()+","+s.getLongitude()+"&end="+s.getLatitude()+","+ e.getLongitude();
+        System.out.println(ORSurl);
 
-import java.io.IOException;
-import java.util.List;
+        HttpRequest getRequest = HttpRequest.newBuilder().uri(new URI(ORSurl)).build();
+        HttpClient httpClient = HttpClient.newHttpClient();
+        HttpResponse<String> getResponse = httpClient.send(getRequest, HttpResponse.BodyHandlers.ofString());
+        System.out.println(getResponse.body());
 
-public class DistanceCalculator {
+        String geoJsonString = getResponse.body();
+        JSONObject geoJsonObject = new JSONObject(geoJsonString);
+        JSONArray segmentsArray = geoJsonObject.getJSONArray("features").getJSONObject(0)
+                .getJSONObject("properties").getJSONArray("segments");
+        distance = segmentsArray.getJSONObject(0).getDouble("distance");
 
-    private static final String API_KEY = "YOUR_OPENROUTESERVICE_API_KEY";
-    private static final String BASE_URL = "https://api.openrouteservice.org/v2/matrix/driving-car";
+        System.out.println("Distance: " + distance);
 
-    public static double[][] calculateDistances(List<Coordinate> coordinates) throws IOException {
-        OkHttpClient client = new OkHttpClient();
-        ObjectMapper mapper = new ObjectMapper();
 
-        // Prepare the JSON payload
-        StringBuilder locationsBuilder = new StringBuilder("[");
-        for (Coordinate coordinate : coordinates) {
-            locationsBuilder.append("[").append(coordinate.getLongitude()).append(",").append(coordinate.getLatitude()).append("],");
-        }
-        locationsBuilder.deleteCharAt(locationsBuilder.length() - 1).append("]");
+        return distance;
 
-        String jsonPayload = "{\"locations\":" + locationsBuilder.toString() + "}";
 
-        RequestBody body = RequestBody.create(
-                jsonPayload,
-                MediaType.parse("application/json; charset=utf-8")
-        );
-
-        Request request = new Request.Builder()
-                .url(BASE_URL)
-                .post(body)
-                .addHeader("Authorization", API_KEY)
-                .build();
-
-        Response response = client.newCall(request).execute();
-        if (!response.isSuccessful()) {
-            throw new IOException("Unexpected code " + response);
-        }
-
-        String responseBody = response.body().string();
-        JsonNode rootNode = mapper.readTree(responseBody);
-        JsonNode distancesNode = rootNode.path("distances");
-
-        int size = coordinates.size();
-        double[][] distances = new double[size][size];
-
-        for (int i = 0; i < size; i++) {
-            for (int j = 0; j < size; j++) {
-                distances[i][j] = distancesNode.get(i).get(j).asDouble();
-            }
-        }
-
-        return distances;
     }
-}
