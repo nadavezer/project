@@ -10,7 +10,7 @@ public class ItemOrder {
     }
 
     public String toString(){//overriding the toString() method
-        return this.item.name +" x " +this.quanity;
+        return this.orderid +":"+ this.item.name +" x " +this.quanity;
     }
 
     public Item getItem() {
